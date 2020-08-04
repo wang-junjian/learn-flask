@@ -13,6 +13,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail, Message
 
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -28,10 +29,21 @@ app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(base_dir, 'data.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+app.config['MAIL_SERVER'] = 'smtp.163.com'
+app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+
+app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[Flasky]'
+app.config['FLASKY_MAIL_SENDER'] = 'Flasky Admin <flasky@example.com>'
+app.config['FLASKY_ADMIN'] = os.environ.get('FLASKY_ADMIN')
+
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 manager = Manager(app)
 db = SQLAlchemy(app)
+mail = Mail(app)
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -52,6 +64,13 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+def send_email(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject, 
+        sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    mail.send(msg)
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -74,6 +93,9 @@ def index():
 
             session['known'] = False
             flash('增加了新用户名 %s' % name)
+
+            if app.config['FLASKY_ADMIN']:
+                send_email(app.config['FLASKY_ADMIN'], 'New User', 'mail/new_user', user=user)
         else:
             session['known'] = True
         session['name'] = name
