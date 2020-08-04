@@ -13,6 +13,8 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
 from flask_mail import Mail, Message
 
 
@@ -43,6 +45,7 @@ bootstrap = Bootstrap(app)
 moment = Moment(app)
 manager = Manager(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 mail = Mail(app)
 
 class Role(db.Model):
@@ -59,6 +62,7 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
+    age =db.Column(db.Integer)
 
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
@@ -71,6 +75,10 @@ def send_email(to, subject, template, **kwargs):
     msg.body = render_template(template + '.txt', **kwargs)
     msg.html = render_template(template + '.html', **kwargs)
     mail.send(msg)
+
+@app.shell_context_processor
+def make_shell_context():
+    return dict(db=db, User=User, Role=Role)
 
 @app.errorhandler(404)
 def page_not_found(e):
