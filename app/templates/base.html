@@ -1,5 +1,9 @@
 {% extends "bootstrap/base.html" %}
 
+{{ moment.include_jquery() }}
+{{ moment.include_moment() }}
+{{ moment.locale("zh-cn") }}
+
 {% block title %}Flasky{% endblock %}
 
 {% block head %}
@@ -47,5 +51,4 @@
 
 {% block scripts %}
 {{ super() }}
-{{ moment.include_moment() }}
 {% endblock %}
